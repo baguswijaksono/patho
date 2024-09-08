@@ -43,7 +43,7 @@ $totalRecords = $totalStmt->fetchColumn();
 $totalPages = ceil($totalRecords / $limit);
 
 // Fetch vulnerabilities based on search, filters, and pagination
-$stmt = $conn->prepare("SELECT * FROM vulnerabilities" . $searchSql . " LIMIT :limit OFFSET :offset");
+$stmt = $conn->prepare("SELECT * FROM vulnerabilities" . $searchSql . " LIMIT $limit OFFSET $offset");
 
 if ($search) {
     $stmt->bindValue(':search', '%' . $search . '%', PDO::PARAM_STR);
@@ -54,31 +54,38 @@ if ($severityFilter) {
 if ($statusFilter) {
     $stmt->bindValue(':status', $statusFilter, PDO::PARAM_STR);
 }
-$stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
-$stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 $vulnerabilities = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Helper function to generate URL with current parameters
+function generateUrl($page) {
+    global $search, $severityFilter, $statusFilter;
+    return "?page=$page" . 
+           ($search ? "&search=" . urlencode($search) : '') . 
+           ($severityFilter ? "&severity=" . urlencode($severityFilter) : '') . 
+           ($statusFilter ? "&status=" . urlencode($statusFilter) : '');
+}
 ?>
 
 <!-- Search and Filter Form -->
 <form method="GET" action="">
-    <input type="text" name="search" placeholder="Search vulnerabilities" value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>">
+    <input type="text" name="search" placeholder="Search vulnerabilities" value="<?php echo htmlspecialchars($search); ?>">
 
     <!-- Filter by Severity -->
     <select name="severity">
         <option value="">All Severities</option>
-        <option value="Low" <?php echo isset($_GET['severity']) && $_GET['severity'] == 'Low' ? 'selected' : ''; ?>>Low</option>
-        <option value="Medium" <?php echo isset($_GET['severity']) && $_GET['severity'] == 'Medium' ? 'selected' : ''; ?>>Medium</option>
-        <option value="High" <?php echo isset($_GET['severity']) && $_GET['severity'] == 'High' ? 'selected' : ''; ?>>High</option>
-        <option value="Critical" <?php echo isset($_GET['severity']) && $_GET['severity'] == 'Critical' ? 'selected' : ''; ?>>Critical</option>
+        <option value="Low" <?php echo $severityFilter === 'Low' ? 'selected' : ''; ?>>Low</option>
+        <option value="Medium" <?php echo $severityFilter === 'Medium' ? 'selected' : ''; ?>>Medium</option>
+        <option value="High" <?php echo $severityFilter === 'High' ? 'selected' : ''; ?>>High</option>
+        <option value="Critical" <?php echo $severityFilter === 'Critical' ? 'selected' : ''; ?>>Critical</option>
     </select>
 
     <!-- Filter by Status -->
     <select name="status">
         <option value="">All Statuses</option>
-        <option value="Open" <?php echo isset($_GET['status']) && $_GET['status'] == 'Open' ? 'selected' : ''; ?>>Open</option>
-        <option value="Resolved" <?php echo isset($_GET['status']) && $_GET['status'] == 'Resolved' ? 'selected' : ''; ?>>Resolved</option>
-        <option value="Closed" <?php echo isset($_GET['status']) && $_GET['status'] == 'Closed' ? 'selected' : ''; ?>>Closed</option>
+        <option value="Open" <?php echo $statusFilter === 'Open' ? 'selected' : ''; ?>>Open</option>
+        <option value="Resolved" <?php echo $statusFilter === 'Resolved' ? 'selected' : ''; ?>>Resolved</option>
+        <option value="Closed" <?php echo $statusFilter === 'Closed' ? 'selected' : ''; ?>>Closed</option>
     </select>
 
     <button type="submit" class="btn btn-primary">Search</button>
@@ -122,17 +129,17 @@ $vulnerabilities = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <!-- Pagination -->
 <div class="pagination">
     <?php if ($page > 1): ?>
-        <a href="?page=<?php echo $page - 1; ?>&search=<?php echo urlencode($search); ?>&severity=<?php echo urlencode($severityFilter); ?>&status=<?php echo urlencode($statusFilter); ?>" class="btn btn-secondary">Previous</a>
+        <a href="<?php echo generateUrl($page - 1); ?>" class="btn btn-secondary">Previous</a>
     <?php endif; ?>
 
     <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-        <a href="?page=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>&severity=<?php echo urlencode($severityFilter); ?>&status=<?php echo urlencode($statusFilter); ?>" class="btn btn-secondary <?php echo $i === $page ? 'active' : ''; ?>">
+        <a href="<?php echo generateUrl($i); ?>" class="btn btn-secondary <?php echo $i === $page ? 'active' : ''; ?>">
             <?php echo $i; ?>
         </a>
     <?php endfor; ?>
 
     <?php if ($page < $totalPages): ?>
-        <a href="?page=<?php echo $page + 1; ?>&search=<?php echo urlencode($search); ?>&severity=<?php echo urlencode($severityFilter); ?>&status=<?php echo urlencode($statusFilter); ?>" class="btn btn-secondary">Next</a>
+        <a href="<?php echo generateUrl($page + 1); ?>" class="btn btn-secondary">Next</a>
     <?php endif; ?>
 </div>
 
