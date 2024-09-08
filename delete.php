@@ -1,5 +1,9 @@
 <?php
-include 'db.php';
+
+declare(strict_types=1);
+
+require_once 'auth/verify.php';
+require_once 'db.php';
 
 if (!isset($_GET['id'])) {
     header('Location: index.php');

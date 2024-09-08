@@ -1,28 +1,48 @@
 <?php
-include 'db.php';
 
-// Set the number of records per page
-$limit = 10; // Number of records per page
+declare(strict_types=1); // Enable strict typing
 
-// Get the current page from query parameters, default to 1 if not set
+require_once 'verify.php';
+require_once 'db.php';
+
+$limit = 10;
 $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
-
-// Calculate the offset for the SQL query
 $offset = ($page - 1) * $limit;
+$search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
-// Fetch the total number of records
-$totalStmt = $conn->query("SELECT COUNT(*) FROM vulnerabilities");
+// Prepare the search query if there is a search term
+$searchSql = '';
+if ($search) {
+    $searchSql = " WHERE title LIKE :search OR description LIKE :search OR severity LIKE :search";
+}
+
+// Get total records for pagination
+$totalStmt = $conn->prepare("SELECT COUNT(*) FROM vulnerabilities" . $searchSql);
+if ($search) {
+    $totalStmt->bindValue(':search', '%' . $search . '%', PDO::PARAM_STR);
+}
+$totalStmt->execute();
 $totalRecords = $totalStmt->fetchColumn();
 $totalPages = ceil($totalRecords / $limit);
 
-// Fetch records for the current page
-$stmt = $conn->prepare("SELECT * FROM vulnerabilities LIMIT :limit OFFSET :offset");
+// Fetch vulnerabilities based on search and pagination
+$stmt = $conn->prepare("SELECT * FROM vulnerabilities" . $searchSql . " LIMIT :limit OFFSET :offset");
+if ($search) {
+    $stmt->bindValue(':search', '%' . $search . '%', PDO::PARAM_STR);
+}
 $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
 $stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 $vulnerabilities = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
+<!-- Search Form -->
+<form method="GET" action="">
+    <input type="text" name="search" placeholder="Search vulnerabilities" value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>">
+    <button type="submit" class="btn btn-primary">Search</button>
+</form>
+
+<!-- Table Display -->
 <table class="table">
     <thead>
         <tr>
@@ -35,36 +55,42 @@ $vulnerabilities = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </tr>
     </thead>
     <tbody>
-        <?php foreach ($vulnerabilities as $vulnerability): ?>
+        <?php if ($vulnerabilities): ?>
+            <?php foreach ($vulnerabilities as $vulnerability): ?>
+                <tr>
+                    <td><?php echo htmlspecialchars($vulnerability['title']); ?></td>
+                    <td><?php echo htmlspecialchars($vulnerability['description']); ?></td>
+                    <td><?php echo htmlspecialchars($vulnerability['severity']); ?></td>
+                    <td><?php echo htmlspecialchars($vulnerability['reported_date']); ?></td>
+                    <td><?php echo htmlspecialchars($vulnerability['status']); ?></td>
+                    <td>
+                        <a href="edit.php?id=<?php echo $vulnerability['id']; ?>">Edit</a> |
+                        <a href="delete.php?id=<?php echo $vulnerability['id']; ?>" onclick="return confirm('Are you sure you want to delete this item?');">Delete</a>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        <?php else: ?>
             <tr>
-                <td><?php echo htmlspecialchars($vulnerability['title']); ?></td>
-                <td><?php echo htmlspecialchars($vulnerability['description']); ?></td>
-                <td><?php echo htmlspecialchars($vulnerability['severity']); ?></td>
-                <td><?php echo htmlspecialchars($vulnerability['reported_date']); ?></td>
-                <td><?php echo htmlspecialchars($vulnerability['status']); ?></td>
-                <td>
-                    <a href="edit.php?id=<?php echo $vulnerability['id']; ?>">Edit</a> |
-                    <a href="delete.php?id=<?php echo $vulnerability['id']; ?>" onclick="return confirm('Are you sure you want to delete this item?');">Delete</a>
-                </td>
+                <td colspan="6">No vulnerabilities found.</td>
             </tr>
-        <?php endforeach; ?>
+        <?php endif; ?>
     </tbody>
 </table>
 
-<!-- Pagination links -->
+<!-- Pagination -->
 <div class="pagination">
     <?php if ($page > 1): ?>
-        <a href="?page=<?php echo $page - 1; ?>" class="btn btn-secondary">Previous</a>
+        <a href="?page=<?php echo $page - 1; ?>&search=<?php echo urlencode($search); ?>" class="btn btn-secondary">Previous</a>
     <?php endif; ?>
 
     <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-        <a href="?page=<?php echo $i; ?>" class="btn btn-secondary <?php echo $i === $page ? 'active' : ''; ?>">
+        <a href="?page=<?php echo $i; ?>&search=<?php echo urlencode($search); ?>" class="btn btn-secondary <?php echo $i === $page ? 'active' : ''; ?>">
             <?php echo $i; ?>
         </a>
     <?php endfor; ?>
 
     <?php if ($page < $totalPages): ?>
-        <a href="?page=<?php echo $page + 1; ?>" class="btn btn-secondary">Next</a>
+        <a href="?page=<?php echo $page + 1; ?>&search=<?php echo urlencode($search); ?>" class="btn btn-secondary">Next</a>
     <?php endif; ?>
 </div>
 
