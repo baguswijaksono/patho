@@ -1,4 +1,3 @@
-// create_vulnerability.php
 <?php
 include 'db.php';
 

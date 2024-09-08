@@ -1,4 +1,3 @@
-// index.php
 <?php
 include 'db.php';
 
@@ -14,6 +13,7 @@ $vulnerabilities = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <th>Severity</th>
             <th>Reported Date</th>
             <th>Status</th>
+            <th>Actions</th>
         </tr>
     </thead>
     <tbody>
@@ -24,11 +24,13 @@ $vulnerabilities = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <td><?php echo htmlspecialchars($vulnerability['severity']); ?></td>
                 <td><?php echo htmlspecialchars($vulnerability['reported_date']); ?></td>
                 <td><?php echo htmlspecialchars($vulnerability['status']); ?></td>
-<td>
-    <a href="edit.php?id=<?php echo $vulnerability['id']; ?>">Edit</a> |
-    <a href="delete.php?id=<?php echo $vulnerability['id']; ?>" onclick="return confirm('Are you sure you want to delete this item?');">Delete</a>
-</td>
+                <td>
+                    <a href="edit.php?id=<?php echo $vulnerability['id']; ?>">Edit</a> |
+                    <a href="delete.php?id=<?php echo $vulnerability['id']; ?>" onclick="return confirm('Are you sure you want to delete this item?');">Delete</a>
+                </td>
             </tr>
         <?php endforeach; ?>
     </tbody>
 </table>
+
+<a href="import.php" class="btn btn-primary">Import</a>

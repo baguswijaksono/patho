@@ -1,4 +1,3 @@
-// export_to_csv.php
 <?php
 include 'db.php';
 

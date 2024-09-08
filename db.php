@@ -1,7 +1,7 @@
 <?php
 $servername = "localhost";
-$username = "phpmyadmin"; // Your MySQL username
-$password = "your_password"; // Your MySQL password
+$username = "phpmyadmin";
+$password = "your_password"; 
 $dbname = "vulnerability_tracker";
 
 try {
